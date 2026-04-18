@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RUN:BREW — 카페 파트너 대시보드</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .wrap { display: flex; justify-content: center; padding: 2rem; background: #eeece6; border-radius: 16px; width: 100%; max-width: 380px; }
+    .phone { width: 300px; background: #fff; border-radius: 32px; border: 1px solid #d0cec8; overflow: hidden; }
+    .sb { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 0.5px solid #e8e6e0; }
+    .sb span { font-size: 12px; color: #888; font-weight: 500; }
+    .scr { padding: 16px 14px 28px; }
+
+    .tab-row { display: flex; gap: 0; margin-bottom: 16px; border: 0.5px solid #d0cec8; border-radius: 8px; overflow: hidden; }
+    .tab { flex: 1; padding: 8px; font-size: 11px; font-weight: 500; text-align: center; cursor: pointer; color: #888; background: #fff; border: none; transition: all .15s; }
+    .tab.on { background: #D85A30; color: #FAECE7; }
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .stat-box { background: #f5f5f0; border-radius: 8px; padding: 10px 12px; }
+    .stat-v { font-size: 18px; font-weight: 500; color: #1a1a1a; }
+    .stat-l { font-size: 10px; color: #888; margin-top: 2px; }
+    .stat-box.highlight { background: #FAECE7; }
+    .stat-box.highlight .stat-v { color: #D85A30; }
+
+    .section-label { font-size: 11px; color: #888; margin-bottom: 6px; letter-spacing: .03em; }
+
+    .service-card { border: 0.5px solid #e8e6e0; border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+    .service-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .service-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .toggle-wrap { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle-wrap input { opacity: 0; width: 100%; height: 100%; position: absolute; cursor: pointer; z-index: 1; margin: 0; }
+    .toggle-track { width: 36px; height: 20px; border-radius: 10px; background: #d0cec8; transition: background .2s; display: block; }
+    .toggle-wrap input:checked ~ .toggle-track { background: #D85A30; }
+    .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; pointer-events: none; }
+    .toggle-wrap input:checked ~ .toggle-thumb { transform: translateX(16px); }
+    .service-desc { font-size: 11px; color: #888; line-height: 1.5; margin-bottom: 8px; }
+    .service-config { background: #f5f5f0; border-radius: 6px; padding: 8px 10px; font-size: 11px; color: #1a1a1a; }
+    .config-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+    .config-key { color: #888; }
+    .config-val { font-weight: 500; color: #D85A30; }
+    .edit-btn { font-size: 10px; padding: 2px 8px; border-radius: 20px; border: 0.5px solid #d0cec8; background: transparent; cursor: pointer; color: #888; margin-top: 6px; }
+
+    .runner-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid #e8e6e0; }
+    .runner-item:last-child { border-bottom: none; }
+    .r-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+    .r-name { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+    .r-meta { font-size: 11px; color: #888; margin-top: 1px; }
+    .r-discount { font-size: 12px; font-weight: 500; color: #D85A30; margin-left: auto; }
+
+    .chart-bar-wrap { margin-bottom: 14px; }
+    .chart-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .chart-day { font-size: 11px; color: #888; min-width: 20px; }
+    .chart-bar-bg { flex: 1; height: 8px; background: #f5f5f0; border-radius: 4px; overflow: hidden; }
+    .chart-fill { height: 100%; border-radius: 4px; background: #D85A30; }
+    .chart-val { font-size: 11px; color: #888; min-width: 28px; text-align: right; }
+
+    .box-card { border: 0.5px solid #e8e6e0; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+    .box-img { height: 80px; background: linear-gradient(135deg, #f5f5f0, #eeece6); display: flex; align-items: center; justify-content: center; position: relative; }
+    .box-img-label { font-size: 10px; color: #888; text-align: center; line-height: 1.4; }
+    .thor-box { width: 60px; height: 36px; background: #f0b400; border-radius: 4px; border: 1px solid #c89400; display: flex; align-items: center; justify-content: center; }
+    .thor-text { font-size: 8px; font-weight: 700; color: #7a5c00; }
+    .coffee-cups { position: absolute; top: 8px; display: flex; gap: 4px; }
+    .cup { width: 10px; height: 14px; background: #c8a47a; border-radius: 2px 2px 4px 4px; border: 0.5px solid #a07040; }
+    .box-info { padding: 10px 12px; }
+    .box-title { font-size: 13px; font-weight: 500; color: #1a1a1a; margin-bottom: 3px; }
+    .box-meta { font-size: 11px; color: #888; line-height: 1.5; }
+    .box-status { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+    .status-active { background: #E1F5EE; color: #085041; }
+    .status-prep { background: #FAEEDA; color: #633806; }
+
+    .drink-card { border: 0.5px solid #e8e6e0; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .drink-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+    .drink-sub { font-size: 11px; color: #888; margin-top: 2px; }
+    .drink-tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; }
+    .tag-before { background: #E1F5EE; color: #085041; }
+    .tag-after { background: #FAECE7; color: #712B13; }
+
+    .info-box { font-size: 11px; color: #888; line-height: 1.6; padding: 10px 12px; background: #f5f5f0; border-radius: 8px; margin-bottom: 10px; }
+    .add-btn { width: 100%; padding: 10px; border-radius: 8px; border: 0.5px solid #d0cec8; background: transparent; font-size: 12px; font-weight: 500; color: #888; cursor: pointer; }
+    .add-btn:hover { background: #f5f5f0; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone">
+    <div class="sb">
+      <span>9:41</span>
+      <span>RUN:BREW 파트너</span>
+      <span>브루어리 성수</span>
+    </div>
+    <div class="scr">
+      <div class="tab-row">
+        <button class="tab on" onclick="showTab('overview', this)">현황</button>
+        <button class="tab" onclick="showTab('services', this)">서비스</button>
+        <button class="tab" onclick="showTab('box', this)">러너박스</button>
+        <button class="tab" onclick="showTab('menu', this)">메뉴</button>
+      </div>
+
+      <!-- 현황 탭 -->
+      <div class="panel on" id="tab-overview">
+        <div class="stat-row">
+          <div class="stat-box highlight">
+            <div class="stat-v">47명</div>
+            <div class="stat-l">오늘 러너 방문</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-v">312ml</div>
+            <div class="stat-l">누적 할인 제공</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-v">4.8★</div>
+            <div class="stat-l">러너 리뷰</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-v">+18%</div>
+            <div class="stat-l">이번 주 방문 증가</div>
+          </div>
+        </div>
+
+        <div class="section-label">오늘 방문한 러너</div>
+        <div>
+          <div class="runner-item">
+            <div class="r-av" style="background:#E1F5EE;color:#085041">JH</div>
+            <div>
+              <div class="r-name">재현</div>
+              <div class="r-meta">8.4km 완주 · 회복 모드</div>
+            </div>
+            <div class="r-discount">-650원</div>
+          </div>
+          <div class="runner-item">
+            <div class="r-av" style="background:#FAECE7;color:#712B13">SY</div>
+            <div>
+              <div class="r-name">수연</div>
+              <div class="r-meta">12km 완주 · 회복 모드</div>
+            </div>
+            <div class="r-discount">-1,200원</div>
+          </div>
+          <div class="runner-item">
+            <div class="r-av" style="background:#EEEDFE;color:#3C3489">MK</div>
+            <div>
+              <div class="r-name">민경</div>
+              <div class="r-meta">5km 완주 · 각성 모드</div>
+            </div>
+            <div class="r-discount">-500원</div>
+          </div>
+        </div>
+
+        <div class="section-label" style="margin-top:14px">이번 주 방문 추이</div>
+        <div class="chart-bar-wrap">
+          <div class="chart-row"><span class="chart-day">월</span><div class="chart-bar-bg"><div class="chart-fill" style="width:45%"></div></div><span class="chart-val">21명</span></div>
+          <div class="chart-row"><span class="chart-day">화</span><div class="chart-bar-bg"><div class="chart-fill" style="width:55%"></div></div><span class="chart-val">26명</span></div>
+          <div class="chart-row"><span class="chart-day">수</span><div class="chart-bar-bg"><div class="chart-fill" style="width:38%"></div></div><span class="chart-val">18명</span></div>
+          <div class="chart-row"><span class="chart-day">목</span><div class="chart-bar-bg"><div class="chart-fill" style="width:68%"></div></div><span class="chart-val">32명</span></div>
+          <div class="chart-row"><span class="chart-day">금</span><div class="chart-bar-bg"><div class="chart-fill" style="width:82%"></div></div><span class="chart-val">39명</span></div>
+          <div class="chart-row"><span class="chart-day">토</span><div class="chart-bar-bg"><div class="chart-fill" style="width:100%"></div></div><span class="chart-val">47명</span></div>
+        </div>
+      </div>
+
+      <!-- 서비스 탭 -->
+      <div class="panel" id="tab-services">
+        <div class="service-card">
+          <div class="service-top">
+            <div class="service-name">킬로수 할인</div>
+            <div class="toggle-wrap">
+              <input type="checkbox" checked>
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </div>
+          </div>
+          <div class="service-desc">러너가 달린 거리만큼 자동 할인. 앱에서 QR 스캔으로 적용.</div>
+          <div class="service-config">
+            <div class="config-row"><span class="config-key">할인 방식</span><span class="config-val">100원 / km</span></div>
+            <div class="config-row"><span class="config-key">최대 할인</span><span class="config-val">2,000원</span></div>
+            <div class="config-row"><span class="config-key">적용 조건</span><span class="config-val">5km 이상</span></div>
+          </div>
+          <button class="edit-btn">설정 변경</button>
+        </div>
+
+        <div class="service-card">
+          <div class="service-top">
+            <div class="service-name">물티슈 서비스</div>
+            <div class="toggle-wrap">
+              <input type="checkbox" checked>
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </div>
+          </div>
+          <div class="service-desc">러너 방문 시 물티슈 무료 제공. 앱 배지에 표시됨.</div>
+          <div class="service-config">
+            <div class="config-row"><span class="config-key">제공 조건</span><span class="config-val">러닝 후 입장</span></div>
+            <div class="config-row"><span class="config-key">앱 노출</span><span class="config-val">물티슈 OK 뱃지</span></div>
+          </div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-top">
+            <div class="service-name">땀 입장 허용</div>
+            <div class="toggle-wrap">
+              <input type="checkbox" checked>
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </div>
+          </div>
+          <div class="service-desc">러닝 후 복장 그대로 입장 가능. 앱 카페 카드에 표시.</div>
+          <div class="service-config">
+            <div class="config-row"><span class="config-key">앱 노출</span><span class="config-val">땀 OK 뱃지</span></div>
+          </div>
+        </div>
+
+        <div class="service-card" style="border-color:#d0cec8;opacity:.7">
+          <div class="service-top">
+            <div class="service-name">모임 예약 수신</div>
+            <div class="toggle-wrap">
+              <input type="checkbox">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </div>
+          </div>
+          <div class="service-desc">커피런 모임 주최자로부터 예약 알림 수신. 단체 준비 가능.</div>
+        </div>
+      </div>
+
+      <!-- 러너박스 탭 -->
+      <div class="panel" id="tab-box">
+        <div class="info-box">
+          러너 박스는 카페 밖 — 한강변, 코스 도착점에 커피 스테이션을 운영하는 서비스예요. 아이스박스(THOR 등) 위에 커피 3-4종을 세팅해 달리는 러너에게 직접 판매할 수 있어요.
+        </div>
+
+        <div class="box-card">
+          <div class="box-img">
+            <div class="coffee-cups">
+              <div class="cup"></div>
+              <div class="cup" style="height:18px"></div>
+              <div class="cup"></div>
+            </div>
+            <div class="thor-box"><span class="thor-text">THOR.</span></div>
+          </div>
+          <div class="box-info">
+            <div class="box-title">서울숲 러너 박스</div>
+            <div class="box-meta">매주 토 · 오전 7–9시<br>콜드브루 · 아이스 아메리카노 · 라떼</div>
+            <span class="box-status status-active">운영 중</span>
+          </div>
+        </div>
+
+        <div class="box-card">
+          <div class="box-img">
+            <div class="box-img-label">한강 뚝섬<br>박스 운영 예정</div>
+          </div>
+          <div class="box-info">
+            <div class="box-title">한강 뚝섬 러너 박스</div>
+            <div class="box-meta">다음 주 일 · 오전 6:30–8:30</div>
+            <span class="box-status status-prep">준비 중</span>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#888;line-height:1.6;margin-bottom:10px">
+          앱에서 "러너 박스 오늘 오픈" 등록 시 주변 러너에게 자동 알림이 발송돼요.
+        </div>
+        <button class="add-btn">+ 새 박스 일정 등록</button>
+      </div>
+
+      <!-- 맞춤 메뉴 탭 -->
+      <div class="panel" id="tab-menu">
+        <div class="section-label">러너 맞춤 메뉴</div>
+
+        <div class="drink-card">
+          <div>
+            <div class="drink-name">러너스 콜드브루</div>
+            <div class="drink-sub">저카페인 · 클로로겐산 높음 · 6,500원</div>
+          </div>
+          <span class="drink-tag tag-after">회복형</span>
+        </div>
+
+        <div class="drink-card">
+          <div>
+            <div class="drink-name">프리런 에스프레소</div>
+            <div class="drink-sub">더블샷 · 각성 특화 · 4,500원</div>
+          </div>
+          <span class="drink-tag tag-before">각성형</span>
+        </div>
+
+        <div class="drink-card">
+          <div>
+            <div class="drink-name">오트 리커버리 라떼</div>
+            <div class="drink-sub">오트밀크 · 글리코겐 회복 · 7,000원</div>
+          </div>
+          <span class="drink-tag tag-after">회복형</span>
+        </div>
+
+        <div class="info-box">
+          맞춤 메뉴는 앱의 커피 처방 결과 화면에 자동 노출돼요. "7km 달리고 이 카페 근처라면 이 메뉴" 형식으로 연결됩니다.
+        </div>
+        <button class="add-btn">+ 러너 메뉴 추가</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(id, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    document.getElementById('tab-' + id).classList.add('on');
+    el.classList.add('on');
+  }
+</script>
+</body>
+</html>
